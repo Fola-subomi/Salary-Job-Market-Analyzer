@@ -3,11 +3,9 @@ import csv
 import os
 import random
 from datetime import datetime
-from urllib.robotparser import RobotFileParser
 from playwright.async_api import async_playwright
 
 BASE_URL = "https://www.jobberman.com/jobs"
-ROBOTS_URL = "https://www.jobberman.com/robots.txt"
 
 LOCATIONS = ["lagos", "abuja", "port-harcourt", "kano", "ibadan", "remote"]
 JOB_TYPES = ["full-time", "part-time", "contract"]
@@ -19,32 +17,6 @@ MAX_PAGES = 10
 OUTPUT_FILE = "data/raw/jobberman_raw.csv"
 FIELDS = ["title", "company", "location", "job_type", "salary", "sector",
           "url", "scraped_at"]
-
-
-# ─────────────────────────────────────────
-# Robots.txt compliance
-# ─────────────────────────────────────────
-
-def load_robot_rules():
-    """Fetch and parse Jobberman's robots.txt."""
-    rp = RobotFileParser()
-    rp.set_url(ROBOTS_URL)
-    try:
-        rp.read()
-        print(f"Loaded robots.txt from {ROBOTS_URL}")
-    except Exception as e:
-        print(f"[!] Could not read robots.txt: {e}")
-        print("    Proceeding with caution — only scraping /jobs/ pages")
-    return rp
-
-
-def is_allowed(rp, url):
-    """Return True if robots.txt permits scraping this URL."""
-    try:
-        return rp.can_fetch("*", url)
-    except Exception:
-        # If we can't check, assume allowed for /jobs/ paths
-        return "/jobs/" in url
 
 
 # ─────────────────────────────────────────
@@ -159,21 +131,13 @@ async def scrape_page(page, url):
     return jobs, has_next
 
 
-async def scrape_location_jobtype(page, location, job_type, existing_urls, rp):
-    """Scrape pages for one location/job-type combo.
-    Respects robots.txt and stops early if all listings are already collected.
-    """
+async def scrape_location_jobtype(page, location, job_type, existing_urls):
+    """Scrape all pages for a given location + job type up to MAX_PAGES."""
     all_jobs = []
     base = f"{BASE_URL}/{location}/{job_type}"
 
     for page_num in range(1, MAX_PAGES + 1):
         url = base if page_num == 1 else f"{base}?page={page_num}"
-
-        # ── robots.txt check ──
-        if not is_allowed(rp, url):
-            print(f"  [robots.txt] Blocked: {url} — skipping")
-            break
-
         print(f"  Page {page_num}: {url}")
 
         jobs, has_next = await scrape_page(page, url)
@@ -183,7 +147,7 @@ async def scrape_location_jobtype(page, location, job_type, existing_urls, rp):
         all_jobs.extend(new_jobs)
         print(f"    {len(jobs)} listings found — {len(new_jobs)} new")
 
-        # If every listing on this page is already saved, stop going deeper
+        # Stop early if whole page already collected
         if len(new_jobs) == 0:
             print(f"    All listings already collected — stopping early")
             break
@@ -198,7 +162,7 @@ async def scrape_location_jobtype(page, location, job_type, existing_urls, rp):
     return all_jobs
 
 
-async def scrape_all(existing_urls, rp):
+async def scrape_all(existing_urls):
     """Loop through all location/job-type combos and collect new listings."""
     all_jobs = []
     total_combos = len(LOCATIONS) * len(JOB_TYPES)
@@ -221,7 +185,7 @@ async def scrape_all(existing_urls, rp):
                 print(f"\n[{count}/{total_combos}] {location} / {job_type}")
 
                 jobs = await scrape_location_jobtype(
-                    page, location, job_type, existing_urls, rp
+                    page, location, job_type, existing_urls
                 )
                 print(f"  Collected {len(jobs)} new jobs for {location}/{job_type}")
                 all_jobs.extend(jobs)
@@ -250,24 +214,13 @@ if __name__ == "__main__":
     print(f"Max jobs  : ~{total_combos * MAX_PAGES * 16:,}")
     print()
 
-    # Check robots.txt before doing anything else
-    rp = load_robot_rules()
-
-    # Verify the base /jobs/ path is allowed before proceeding
-    if not is_allowed(rp, BASE_URL):
-        print(f"\n[!] robots.txt disallows scraping {BASE_URL}")
-        print("    Exiting out of respect for the site's rules.")
-        exit(1)
-    else:
-        print(f"robots.txt check passed — /jobs/ is allowed\n")
-
     # Load what we already have so we only collect new listings
     existing_urls = load_existing_urls()
     print(f"Existing listings in CSV : {len(existing_urls)}")
     print(f"These will be skipped.\n")
 
     # Scrape
-    jobs = asyncio.run(scrape_all(existing_urls, rp))
+    jobs = asyncio.run(scrape_all(existing_urls))
 
     # Clean and save
     jobs = deduplicate(jobs)
