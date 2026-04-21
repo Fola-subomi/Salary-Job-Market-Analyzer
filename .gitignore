@@ -1,0 +1,21 @@
+# Raw and cleaned data — do not commit scraped data
+data/raw/
+data/clean/
+
+# Trained model binary
+model/salary_model.pkl
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
