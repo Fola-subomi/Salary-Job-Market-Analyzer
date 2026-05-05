@@ -78,13 +78,24 @@ h1, h2, h3 {
     margin: 12px 0;
 }
 
-/* Rest of your button and layout styles... */
+/* Button */
 .stButton > button {
     background: #1a6b35 !important;
-    font-family: 'DM Sans', sans-serif !important;
+    color: white !important;              /* This forces the text to white */
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 12px 32px !important;
+    font-family: 'Syne', sans-serif !important;
     font-weight: 600 !important;
+    font-size: 15px !important;
+    width: 100% !important;
+    transition: background 0.2s !important;
 }
-</style>
+
+.stButton > button:hover {
+    background: #0a2e1a !important;
+    color: white !important;              /* Ensures it stays white on hover */
+}
 """, unsafe_allow_html=True)
 
 
