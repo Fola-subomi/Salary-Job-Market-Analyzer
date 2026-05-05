@@ -1,6 +1,5 @@
 # Raw and cleaned data — do not commit scraped data
 data/raw/
-#data/clean/
 
 # Trained model binary
 model/salary_model.pkl
