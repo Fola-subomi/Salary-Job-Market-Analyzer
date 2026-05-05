@@ -104,9 +104,17 @@ h1, h2, h3 {
 # ─────────────────────────────────────────
 
 @st.cache_data
+
 def load_data():
-    df = pd.read_csv("data/clean/jobs_clean.csv")
-    return df
+    # Find the directory where Dashboard.py lives
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # If data is in the root (one level up from 'app'), use ".."
+    # If data is inside 'app', remove the ".."
+    file_path = os.path.join(current_dir, "..", "data", "clean", "jobs_clean.csv")
+    
+    return pd.read_csv(file_path)
+
 
 
 @st.cache_resource
@@ -365,15 +373,30 @@ if page == "📊  Dashboard":
 
     # ── Data table ──
     st.markdown('<div class="section-title">Browse Listings</div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-sub">Raw job data from all sources</div>', unsafe_allow_html=True)
-    display_cols = ["title", "company", "location", "sector", "avg_salary", "source"]
+    st.markdown('<div class="section-sub">Click on the Location to view the original post</div>', unsafe_allow_html=True)
+
+
+    display_cols = ["title", "company", "location", "sector", "avg_salary", "source", "url"]
     table = filtered[display_cols].copy()
+
+    # Format salary as you did before
     table["avg_salary"] = table["avg_salary"].apply(
         lambda x: f"₦{x:,.0f}" if pd.notna(x) else "—"
     )
-    table.columns = ["Title", "Company", "Location", "Sector", "Avg Salary", "Source"]
-    st.dataframe(table, use_container_width=True, height=320)
 
+    table.columns = ["Title", "Company", "Location", "Sector", "Avg Salary", "Source", "Apply Link"]
+
+    st.dataframe(
+        table, 
+        use_container_width=True, 
+        height=320,
+        hide_index=True,
+        column_config={
+            "Apply Link": st.column_config.LinkColumn("View Listing"),
+            "Location": st.column_config.TextColumn("Location")
+            }
+        
+    )
 
 # ─────────────────────────────────────────
 # Page 2 — Salary Predictor
