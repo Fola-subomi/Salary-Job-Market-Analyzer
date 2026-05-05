@@ -6,7 +6,7 @@ A full-stack data science project that scrapes Nigerian job boards, cleans and s
 
 ## Live Demo
 
-> Coming soon — will be deployed on Streamlit Community Cloud
+> https://salary-job-market-analyzer-2np6bttfosgjmpo4qh8kby.streamlit.app/
 
 ---
 
